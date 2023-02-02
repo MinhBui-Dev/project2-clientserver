@@ -8,6 +8,8 @@ import dslabs.framework.Result;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import static dslabs.clientserver.ClientTimer.CLIENT_RETRY_MILLIS;
+
 /**
  * Simple client that sends requests to a single server and returns responses.
  *
@@ -20,6 +22,9 @@ class SimpleClient extends Node implements Client {
     private final Address serverAddress;
 
     //TODO: declare fields for your implementation
+    private Command command;
+    private Result result;
+    private int sequenceNumber;
 
     /* -------------------------------------------------------------------------
         Construction and Initialization
@@ -28,6 +33,7 @@ class SimpleClient extends Node implements Client {
         super(address);
         this.serverAddress = serverAddress;
         //TODO: Initialize declared fields if necessary
+        sequenceNumber = 0;
     }
 
     @Override
@@ -41,18 +47,27 @@ class SimpleClient extends Node implements Client {
     @Override
     public synchronized void sendCommand(Command command) {
         //TODO: send command to server
+        Command c = command;
+        this.command = c;
+        this.result = null;
+        sequenceNumber++;
+        this.send(new Request(c, sequenceNumber), serverAddress);
+        this.set(new ClientTimer(c, sequenceNumber), CLIENT_RETRY_MILLIS);
     }
 
     @Override
     public synchronized boolean hasResult() {
         //TODO: check whether there is result
-        return false;
+        return result != null;
     }
 
     @Override
     public synchronized Result getResult() throws InterruptedException {
         //TODO: wait to get result
-        return null;
+        while (result == null) {
+            wait();
+        }
+        return result;
     }
 
     /* -------------------------------------------------------------------------
@@ -60,6 +75,12 @@ class SimpleClient extends Node implements Client {
        -----------------------------------------------------------------------*/
     private synchronized void handleReply(Reply m, Address sender) {
         //TODO: check desired reply arrive
+        if (result == null && m.sequenceNumber() == sequenceNumber) {
+            command = null;
+            result = m.result();
+            notifyAll();
+        }
+
     }
 
     /* -------------------------------------------------------------------------
@@ -67,5 +88,9 @@ class SimpleClient extends Node implements Client {
        -----------------------------------------------------------------------*/
     private synchronized void onClientTimer(ClientTimer t) {
         //TODO: perform action when timer reach timeout
+        if (command != null && t.sequenceNumber() == sequenceNumber) {
+            this.send(new Request(command, sequenceNumber), serverAddress);
+            this.set(t, CLIENT_RETRY_MILLIS);
+        }
     }
 }
