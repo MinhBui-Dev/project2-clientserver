@@ -72,8 +72,10 @@ public class KVStore implements Application {
     public KVStore(KVStore application){
         //TODO: a deepcopy constructor
         //Hints: remember to deepcopy all fields, especially the mutable ones
-        this.kvstore.putAll(application.kvstore);
-
+        HashMap<String, String> kvstore = new HashMap<>();
+        for (Map.Entry<String, String> entry : application.kvstore.entrySet()) {
+            kvstore.put(entry.getKey(), entry.getValue());
+        }
     }
 
     @Override
