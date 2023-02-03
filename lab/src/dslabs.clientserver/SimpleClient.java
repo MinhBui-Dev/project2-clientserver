@@ -1,5 +1,7 @@
 package dslabs.clientserver;
 
+import dslabs.atmostonce.AMOCommand;
+import dslabs.atmostonce.AMOResult;
 import dslabs.framework.Address;
 import dslabs.framework.Client;
 import dslabs.framework.Command;
@@ -22,8 +24,8 @@ class SimpleClient extends Node implements Client {
     private final Address serverAddress;
 
     //TODO: declare fields for your implementation
-    private Command command;
-    private Result result;
+    private AMOCommand command;
+    private AMOResult result;
     private int sequenceNumber;
 
     /* -------------------------------------------------------------------------
@@ -47,11 +49,12 @@ class SimpleClient extends Node implements Client {
     @Override
     public synchronized void sendCommand(Command command) {
         //TODO: send command to server
-        Command c = command;
+        sequenceNumber++;
+        AMOCommand c = new AMOCommand(command, sequenceNumber,
+                this.address().toString());
         this.command = c;
         this.result = null;
-        sequenceNumber++;
-        this.send(new Request(c, sequenceNumber), serverAddress);
+        this.send(new Request(c), serverAddress);
         this.set(new ClientTimer(c, sequenceNumber), CLIENT_RETRY_MILLIS);
     }
 
@@ -67,7 +70,7 @@ class SimpleClient extends Node implements Client {
         while (result == null) {
             wait();
         }
-        return result;
+        return result.result();
     }
 
     /* -------------------------------------------------------------------------
@@ -75,9 +78,9 @@ class SimpleClient extends Node implements Client {
        -----------------------------------------------------------------------*/
     private synchronized void handleReply(Reply m, Address sender) {
         //TODO: check desired reply arrive
-        if (result == null && m.sequenceNumber() == sequenceNumber) {
+        if (result == null && m.amoResult().sequenceNumber() == sequenceNumber) {
             command = null;
-            result = m.result();
+            result = m.amoResult();
             notifyAll();
         }
 
@@ -89,7 +92,7 @@ class SimpleClient extends Node implements Client {
     private synchronized void onClientTimer(ClientTimer t) {
         //TODO: perform action when timer reach timeout
         if (command != null && t.sequenceNumber() == sequenceNumber) {
-            this.send(new Request(command, sequenceNumber), serverAddress);
+            this.send(new Request(command), serverAddress);
             this.set(t, CLIENT_RETRY_MILLIS);
         }
     }

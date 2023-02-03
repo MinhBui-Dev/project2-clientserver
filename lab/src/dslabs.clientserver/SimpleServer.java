@@ -1,5 +1,8 @@
 package dslabs.clientserver;
 
+import dslabs.atmostonce.AMOApplication;
+import dslabs.atmostonce.AMOCommand;
+import dslabs.atmostonce.AMOResult;
 import dslabs.framework.Address;
 import dslabs.framework.Application;
 import dslabs.framework.Node;
@@ -18,7 +21,7 @@ import dslabs.kvstore.KVStore;
 @EqualsAndHashCode(callSuper = true)
 class SimpleServer extends Node {
     //TODO: declare fields for your implementation
-    private KVStore app = new KVStore();
+    private AMOApplication<KVStore> amoApplication;
 
     /* -------------------------------------------------------------------------
         Construction and Initialization
@@ -28,7 +31,8 @@ class SimpleServer extends Node {
 
         //TODO: record the passed application
         //Hints: wrap app inside your implementation for AMOApplication (Part 3)
-        //this.app = new KVStore((KVStore) app);
+        amoApplication = new AMOApplication<KVStore>((KVStore) app);
+
     }
 
     @Override
@@ -42,7 +46,8 @@ class SimpleServer extends Node {
     private void handleRequest(Request m, Address sender) {
         //TODO: handle client request
         //Hints: call interface provided by AMOApplication to hide the duplication check from server
-        Result r = app.execute(m.command());
-        this.send(new Reply(r, m.sequenceNumber()), sender);
+        AMOCommand command = m.amoCommand();
+        AMOResult result = amoApplication.execute(command);
+        this.send(new Reply(result), sender);
     }
 }
