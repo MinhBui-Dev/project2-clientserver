@@ -103,10 +103,15 @@ The `ClientSequenceNumber` vector clock is used for this purpose as well as garb
 
 ## Missing Components
 
-### Client & Server
+### Client
 The client is not implemented to send multiple commands at the same time as this is not required for the lab.
 However, to implement this feature, the client will need to keep track of the `sequenceNumber` of each command sent to the server as well as the `sequenceNumber` of the reply received from the server.
 
-## References
+### Server
+The requests to the server are handled on first-come first-served basis. In real life scenario, most likely the KV Store will need to in consistent state across the clients. 
+Thus, we would need to establish an ordering of the requests and execute them in order to ensure consistency and accuracy of the results.
 
-## Extra (Optional)
+## References
+- [DSLab Framework](https://ellismichael.com/dslabs/javadoc/dslabs/framework/package-summary.html)
+- [Prof Ellis's Lecture Slides](https://ellismichael.com/dslabs/452%20Discussion%20Section%20Slides.pdf)
+- [Prof ADA's Video Lecture on Lesson 3](https://gatech.instructure.com/)
